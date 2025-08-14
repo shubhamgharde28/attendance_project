@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-z-ieyr@8rw5y^6$f%g2o6tq$694epedxv!7cuuxz6a322v(xh_
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = ["Shubhamgharde28.pythonanywhere.com","127.0.0.1"]
 
 
 # Application definition
@@ -51,7 +51,11 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
+
+
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 ROOT_URLCONF = 'attendance_project.urls'
 
