@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.models import User
-from .models import Employee, BiometricData, Fingerprint, Attendance
+from .models import Employee, BiometricData, Attendance
 
 # ----------------- EMPLOYEE ADMIN -----------------
 @admin.register(Employee)
@@ -36,15 +36,11 @@ class EmployeeAdmin(admin.ModelAdmin):
     get_email.short_description = 'Email'
 
 # ----------------- BIOMETRIC DATA ADMIN -----------------
-class FingerprintInline(admin.TabularInline):
-    model = Fingerprint
-    extra = 0
-    readonly_fields = ('index',)
+
 
 @admin.register(BiometricData)
 class BiometricDataAdmin(admin.ModelAdmin):
     list_display = ('employee', 'face_registered', 'fingerprint_count')
-    inlines = [FingerprintInline]
 
     def fingerprint_count(self, obj):
         return obj.fingerprints.count()

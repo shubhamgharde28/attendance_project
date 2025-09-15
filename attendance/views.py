@@ -3,32 +3,25 @@ from rest_framework.response import Response
 from rest_framework import status, permissions, generics
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.utils import timezone
-from django.views import View
-from django.http import JsonResponse
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
-import json
-
 from django.contrib.auth import authenticate
 from .models import Employee, Attendance, BiometricData
 from .serializers import (
     LoginSerializer,
     EmployeeProfileSerializer,
     AttendanceCheckInSerializer,
-    AttendanceCheckOutSerializer
+    AttendanceCheckOutSerializer,
+    BiometricRegisterSerializer,
 )
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
 from drf_yasg.utils import swagger_auto_schema
-from .serializers import LoginSerializer
+
+
 # ----------------- LOGIN -----------------
 class EmployeeLoginView(APIView):
     @swagger_auto_schema(request_body=LoginSerializer)
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        mobile = serializer.validated_data['username']  # serializer uses username field for login
+        mobile = serializer.validated_data['username']
         password = serializer.validated_data['password']
 
         try:
@@ -48,6 +41,7 @@ class EmployeeLoginView(APIView):
             'name': f"{user.first_name} {user.last_name}"
         })
 
+
 # ----------------- PROFILE -----------------
 class EmployeeProfileView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -64,124 +58,88 @@ class EmployeeProfileView(APIView):
         serializer.save()
         return Response({'message': 'Profile updated successfully'})
 
-# ----------------- ATTENDANCE CHECK-IN -----------------
-class AttendanceCheckInView(generics.CreateAPIView):
-    serializer_class = AttendanceCheckInSerializer
-    permission_classes = [permissions.IsAuthenticated]
 
-    def post(self, request, *args, **kwargs):
-        # If using default User + Employee
-        employee = getattr(request.user, 'employee', request.user)
-        serializer = self.get_serializer(data=request.data)
+# ----------------- ATTENDANCE -----------------
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from django.shortcuts import get_object_or_404
+from .models import Employee, Attendance
+from .serializers import AttendanceCheckInSerializer, AttendanceCheckOutSerializer
+from datetime import datetime
+
+
+class AttendanceCheckInView(APIView):
+    def post(self, request):
+        serializer = AttendanceCheckInSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        scan_type = serializer.validated_data['scan_type']
-        biometric = BiometricData.objects.filter(employee=employee).first()
+        employee_id = request.data.get("employee_id")
+        try:
+            employee = Employee.objects.get(employee_id=employee_id)
+        except Employee.DoesNotExist:
+            return Response({"error": "Invalid employee_id"}, status=400)
 
-        if not biometric:
-            return Response({"detail": "Biometric registration not found."}, status=status.HTTP_400_BAD_REQUEST)
-
-        if scan_type == 'face' and not biometric.face_registered:
-            return Response({"detail": "Face not registered."}, status=status.HTTP_400_BAD_REQUEST)
-        elif scan_type == 'finger' and not biometric.fingerprint_registered:
-            return Response({"detail": "Fingerprint not registered."}, status=status.HTTP_400_BAD_REQUEST)
-
-        today = timezone.localdate()
-        if Attendance.objects.filter(employee=employee, date=today).exists():
-            return Response({"detail": "Already checked in today."}, status=status.HTTP_400_BAD_REQUEST)
-
+        # create attendance
         Attendance.objects.create(
             employee=employee,
-            date=today,  # ✅ explicitly set date
             check_in_time=timezone.now(),
-            scan_type=scan_type,
-            check_in_latitude=serializer.validated_data['check_in_latitude'],
-            check_in_longitude=serializer.validated_data['check_in_longitude'],
+            check_in_latitude=serializer.validated_data["check_in_latitude"],
+            check_in_longitude=serializer.validated_data["check_in_longitude"],
+            scan_type=serializer.validated_data["scan_type"],
+            device_id=serializer.validated_data["device_id"],
+            status=serializer.validated_data.get("status", "pending"),
         )
 
-        return Response({"detail": "Check-in successful."}, status=status.HTTP_201_CREATED)
+        return Response({"message": "Check-in successful"}, status=201)
 
 
-class AttendanceCheckOutView(generics.UpdateAPIView):
-    serializer_class = AttendanceCheckOutSerializer
-    permission_classes = [permissions.IsAuthenticated]
 
-    def get_queryset(self):
-        employee = getattr(self.request.user, 'employee', self.request.user)
-        today = timezone.localdate()  # ✅ match check-in date
-        return Attendance.objects.filter(
-            employee=employee,
-            date=today,
-            check_out_time__isnull=True
-        )
-
-    def update(self, request, *args, **kwargs):
-        employee = getattr(request.user, 'employee', request.user)
-        serializer = self.get_serializer(data=request.data)
+class AttendanceCheckOutView(APIView):
+    def post(self, request):
+        serializer = AttendanceCheckOutSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        scan_type = serializer.validated_data['scan_type']
-        biometric = BiometricData.objects.filter(employee=employee).first()
+        employee_id = request.data.get("employee_id")
+        try:
+            employee = Employee.objects.get(employee_id=employee_id)
+        except Employee.DoesNotExist:
+            return Response({"error": "Invalid employee_id"}, status=400)
 
-        if not biometric:
-            return Response({"detail": "Biometric registration not found."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            attendance = Attendance.objects.get(
+                employee=employee,
+                date=timezone.localdate(),
+                check_out_time__isnull=True
+            )
+        except Attendance.DoesNotExist:
+            return Response({"error": "No active check-in found"}, status=400)
 
-        if scan_type == 'face' and not biometric.face_registered:
-            return Response({"detail": "Face not registered."}, status=status.HTTP_400_BAD_REQUEST)
-        elif scan_type == 'finger' and not biometric.fingerprint_registered:
-            return Response({"detail": "Fingerprint not registered."}, status=status.HTTP_400_BAD_REQUEST)
-
-        attendance_qs = self.get_queryset()
-        if not attendance_qs.exists():
-            return Response({"detail": "No active check-in found for today."}, status=status.HTTP_400_BAD_REQUEST)
-
-        attendance = attendance_qs.first()
         attendance.check_out_time = timezone.now()
-        attendance.scan_type = scan_type
-        attendance.check_out_latitude = serializer.validated_data['check_out_latitude']
-        attendance.check_out_longitude = serializer.validated_data['check_out_longitude']
+        attendance.check_out_latitude = serializer.validated_data["check_out_latitude"]
+        attendance.check_out_longitude = serializer.validated_data["check_out_longitude"]
+        attendance.scan_type = serializer.validated_data["scan_type"]
+        attendance.device_id = serializer.validated_data["device_id"]
+        attendance.status = serializer.validated_data.get("status", "pending")
         attendance.save()
 
-        return Response({"detail": "Check-out successful."}, status=status.HTTP_200_OK)
+        return Response({"message": "Check-out successful"}, status=200)
+
+
 
 
 # ----------------- BIOMETRIC REGISTER -----------------
-@method_decorator(csrf_exempt, name='dispatch')
-class BiometricRegisterView(View):
+class BiometricRegisterView(APIView):
+    @swagger_auto_schema(request_body=BiometricRegisterSerializer)
     def post(self, request):
-        try:
-            data = json.loads(request.body)
-            employee_id = data.get('employee_id')
-            face_registered = data.get('face_registered', False)
-            fingerprint_registered = data.get('fingerprint_registered', False)
+        serializer = BiometricRegisterSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        biometric = serializer.save()
 
-            if not employee_id:
-                return JsonResponse({"error": "Employee ID is required"}, status=400)
-
-            try:
-                employee = Employee.objects.get(employee_id=employee_id)
-            except Employee.DoesNotExist:
-                return JsonResponse({"error": "Employee not found"}, status=404)
-
-            biometric, created = BiometricData.objects.get_or_create(employee=employee)
-
-            if face_registered:
-                biometric.face_registered = True
-                biometric.face_registered_at = timezone.now()
-
-            if fingerprint_registered:
-                biometric.fingerprint_registered = True
-                biometric.fingerprint_registered_at = timezone.now()
-
-            biometric.save()
-
-            return JsonResponse({
-                "message": "Biometric status updated successfully.",
-                "face_registered": biometric.face_registered,
-                "fingerprint_registered": biometric.fingerprint_registered,
-            }, status=200)
-
-        except Exception as e:
-            return JsonResponse({"error": str(e)}, status=500)
-
-
+        return Response({
+            "message": "Biometric registration successful.",
+            "face_registered": biometric.face_registered,
+            "fingerprint_registered": biometric.fingerprint_registered,
+            "status": biometric.status,
+            "device_id": biometric.device_id,
+        }, status=201)

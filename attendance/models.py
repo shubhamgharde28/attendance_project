@@ -42,7 +42,15 @@ class Employee(models.Model):
 
 # ----------------- BIOMETRIC DATA -----------------
 
+from django.db import models
+
 class BiometricData(models.Model):
+    STATUS_CHOICES = [
+        ("active", "Active"),
+        ("revoked", "Revoked"),
+        ("expired", "Expired"),
+    ]
+
     employee = models.OneToOneField(Employee, on_delete=models.CASCADE)
 
     face_registered = models.BooleanField(default=False)
@@ -50,24 +58,27 @@ class BiometricData(models.Model):
     face_registered_at = models.DateTimeField(null=True, blank=True)
     fingerprint_registered_at = models.DateTimeField(null=True, blank=True)
 
-    def __str__(self):
-        return f"Biometric status for {self.employee.employee_id}"
-
-
-class Fingerprint(models.Model):
-    biometric = models.ForeignKey(BiometricData, on_delete=models.CASCADE, related_name='fingerprints')
-    index = models.PositiveIntegerField()  # 1 to 5
-    registered_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        unique_together = ('biometric', 'index')
+    # New fields
+    device_id = models.CharField(max_length=255, unique=True)  # ANDROID_ID
+    public_key = models.TextField()  # Base64-encoded public key
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="active")
+    created_at = models.DateTimeField(auto_now_add=True)  # Registration timestamp
+    last_used_at = models.DateTimeField(null=True, blank=True)  # Last attendance attempt
 
     def __str__(self):
-        return f"Fingerprint {self.index} for {self.biometric.employee.employee_id}"
+        return f"Biometric status for {self.employee.employee_id} ({self.status})"
+
+
 
 # ----------------- ATTENDANCE MODEL -----------------
 
 class Attendance(models.Model):
+    STATUS_CHOICES = [
+        ("pending", "Pending"),
+        ("success", "Success"),
+        ("failed", "Failed"),
+    ]
+
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE)
     
     check_in_time = models.DateTimeField(null=True, blank=True)
@@ -81,8 +92,12 @@ class Attendance(models.Model):
     scan_type = models.CharField(max_length=10, choices=[('face', 'Face'), ('finger', 'Fingerprint')])
     date = models.DateField(auto_now_add=True)
 
+    # 🔹 New fields
+    device_id = models.CharField(max_length=255)  # Must match registered device (BiometricData.device_id)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+
     def __str__(self):
-        return f"{self.employee.employee_id} - {self.date}"
+        return f"{self.employee.employee_id} - {self.date} ({self.status})"
 
     class Meta:
         ordering = ['-date']
