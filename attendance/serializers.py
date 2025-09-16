@@ -96,3 +96,47 @@ class BiometricRegisterSerializer(serializers.ModelSerializer):
         # TODO: Handle face_encoding storage (if required in another model/table)
 
         return biometric
+
+# ----------------- EMPLOYEE FULL DATA -----------------
+from datetime import date
+
+class AttendanceRecordSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Attendance
+        fields = [
+            'date',
+            'check_in_time', 'check_in_latitude', 'check_in_longitude',
+            'check_out_time', 'check_out_latitude', 'check_out_longitude',
+            'scan_type', 'device_id', 'status'
+        ]
+
+
+class EmployeeFullDataSerializer(serializers.ModelSerializer):
+    user = UserSerializer()
+    attendance_records = AttendanceRecordSerializer(many=True, source='attendance_set')
+    biometric_data = BiometricRegisterSerializer(read_only=True)
+    present_days_in_month = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Employee
+        fields = [
+            'user',
+            'mobile',
+            'employee_id',
+            'aadhaar_number', 'aadhaar_photo',
+            'bank_name', 'account_number', 'ifsc_code',
+            'attendance_records',
+            'biometric_data',
+            'present_days_in_month',
+        ]
+
+    def get_present_days_in_month(self, obj):
+        """Count attendance days with at least a check-in in the current month"""
+        today = date.today()
+        return Attendance.objects.filter(
+            employee=obj,
+            date__year=today.year,
+            date__month=today.month,
+            check_in_time__isnull=False
+        ).count()
+

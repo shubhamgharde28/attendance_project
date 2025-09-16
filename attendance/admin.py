@@ -40,11 +40,12 @@ class EmployeeAdmin(admin.ModelAdmin):
 
 @admin.register(BiometricData)
 class BiometricDataAdmin(admin.ModelAdmin):
-    list_display = ('employee', 'face_registered', 'fingerprint_count')
+    list_display = ('employee', 'face_registered', 'fingerprint_status')
 
-    def fingerprint_count(self, obj):
-        return obj.fingerprints.count()
-    fingerprint_count.short_description = 'Fingerprint Count'
+    def fingerprint_status(self, obj):
+        return "Yes" if obj.fingerprint_registered else "No"
+    fingerprint_status.short_description = 'Fingerprint Registered'
+
 
 # ----------------- ATTENDANCE ADMIN -----------------
 @admin.register(Attendance)

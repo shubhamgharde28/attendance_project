@@ -143,3 +143,22 @@ class BiometricRegisterView(APIView):
             "status": biometric.status,
             "device_id": biometric.device_id,
         }, status=201)
+
+
+from rest_framework import generics, permissions
+from .models import Employee
+from .serializers import EmployeeFullDataSerializer
+
+class EmployeeFullDataAPIView(generics.RetrieveAPIView):
+    """
+    Fetch all data of an employee including profile, attendance, and biometric.
+    """
+    serializer_class = EmployeeFullDataSerializer
+    permission_classes = [permissions.IsAuthenticated]  # optional
+
+    def get_queryset(self):
+        return Employee.objects.all()
+
+    def get_object(self):
+        employee_id = self.kwargs.get('employee_id')
+        return Employee.objects.get(employee_id=employee_id)

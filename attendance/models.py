@@ -45,28 +45,28 @@ class Employee(models.Model):
 from django.db import models
 
 class BiometricData(models.Model):
-    STATUS_CHOICES = [
-        ("active", "Active"),
-        ("revoked", "Revoked"),
-        ("expired", "Expired"),
-    ]
-
-    employee = models.OneToOneField(Employee, on_delete=models.CASCADE)
-
+    employee = models.OneToOneField(
+        Employee,
+        on_delete=models.CASCADE,
+        related_name="biometric_data"   # 👈 add this
+    )
     face_registered = models.BooleanField(default=False)
     fingerprint_registered = models.BooleanField(default=False)
     face_registered_at = models.DateTimeField(null=True, blank=True)
     fingerprint_registered_at = models.DateTimeField(null=True, blank=True)
-
-    # New fields
-    device_id = models.CharField(max_length=255, unique=True)  # ANDROID_ID
-    public_key = models.TextField()  # Base64-encoded public key
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="active")
-    created_at = models.DateTimeField(auto_now_add=True)  # Registration timestamp
-    last_used_at = models.DateTimeField(null=True, blank=True)  # Last attendance attempt
+    device_id = models.CharField(max_length=255)
+    public_key = models.TextField()
+    status = models.CharField(max_length=20, choices=[
+        ('pending', 'Pending'),
+        ('success', 'Success'),
+        ('failed', 'Failed')
+    ])
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_used_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
-        return f"Biometric status for {self.employee.employee_id} ({self.status})"
+        return f"{self.employee.employee_id} Biometric"
+
 
 
 

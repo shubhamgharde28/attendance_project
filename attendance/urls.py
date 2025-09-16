@@ -5,6 +5,7 @@ from .views import (
     AttendanceCheckInView,
     AttendanceCheckOutView,
     BiometricRegisterView,
+    EmployeeFullDataAPIView,
 )
 
 urlpatterns = [
@@ -20,4 +21,6 @@ urlpatterns = [
 
     # Biometric
     path('biometric/register/', BiometricRegisterView.as_view(), name='biometric-register'),
+
+    path('employee/<str:employee_id>/full-data/', EmployeeFullDataAPIView.as_view(), name='employee-full-data'),
 ]
