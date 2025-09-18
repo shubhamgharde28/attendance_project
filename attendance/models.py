@@ -102,3 +102,164 @@ class Attendance(models.Model):
     class Meta:
         ordering = ['-date']
         unique_together = ('employee', 'date')
+
+
+
+from django.db import models
+
+
+class ProjectDetail(models.Model):
+    PROJECT_TYPE_CHOICES = [
+        ("residential", "Residential"),
+        ("commercial", "Commercial"),
+        ("mixed_use", "Mixed Use"),
+        ("plots", "Plots"),
+        ("township", "Township"),
+        ("apartment", "Apartment"),
+        ("other", "Other"),
+    ]
+
+    project_name = models.CharField(max_length=255)
+    builder_name = models.CharField(max_length=255, verbose_name="Builder/Developer Name")
+    project_type = models.CharField(max_length=50, choices=PROJECT_TYPE_CHOICES)
+
+    # Location
+    city = models.CharField(max_length=100)
+    address = models.TextField()
+    khasra_number = models.CharField(max_length=100, blank=True, null=True)
+    state = models.CharField(max_length=100)
+    zipcode = models.CharField(max_length=20)
+
+    # Project details
+    number_of_units = models.PositiveIntegerField()
+    launch_date = models.DateField(blank=True, null=True)
+    possession_date = models.DateField(blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Project Detail"
+        verbose_name_plural = "Project Details"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.project_name} ({self.city}, {self.state})"
+
+
+
+class SiteVisit(models.Model):
+    VISIT_STATUS_CHOICES = [
+        ("scheduled", "Scheduled"),
+        ("completed", "Completed"),
+        ("cancelled", "Cancelled"),
+    ]
+
+    VISITOR_INTEREST_CHOICES = [
+        ("interested", "Interested"),
+        ("not_interested", "Not Interested"),
+    ]
+
+    # Relations
+    employee = models.ForeignKey(
+        Employee, on_delete=models.CASCADE, related_name="site_visits"
+    )
+    project = models.ForeignKey(
+        ProjectDetail, on_delete=models.CASCADE, related_name="site_visits"
+    )
+
+    # Visit info
+    visit_date = models.DateField(blank=True, null=True)   # ✅ made optional
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
+    remarks = models.TextField(blank=True, null=True)
+    status = models.CharField(
+        max_length=20, choices=VISIT_STATUS_CHOICES, default="scheduled"
+    )
+
+    # Visitor info
+    visitor_name = models.CharField(max_length=255)
+    plot_number = models.CharField(max_length=50, blank=True, null=True)
+    visitor_mobile = models.CharField(max_length=15)
+    visitor_address = models.TextField(blank=True, null=True)
+    visitor_status = models.CharField(
+        max_length=20, choices=VISITOR_INTEREST_CHOICES, default="interested"
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Site Visit"
+        verbose_name_plural = "Site Visits"
+        ordering = ["-visit_date", "-created_at"]
+
+    def __str__(self):
+        return f"{self.visitor_name} - {self.project.project_name} ({self.visit_date})"
+
+
+from django.db import models
+from django.utils import timezone
+from .models import Employee, ProjectDetail
+
+
+class PropertyBooking(models.Model):
+    BOOKING_STATUS_CHOICES = [
+        ("pending", "Pending"),
+        ("confirmed", "Confirmed"),
+        ("cancelled", "Cancelled"),
+    ]
+
+    PAYMENT_STATUS_CHOICES = [
+        ("pending", "Pending"),
+        ("partial", "Partial"),
+        ("paid", "Paid"),
+    ]
+
+    # Relations
+    employee = models.ForeignKey(
+        Employee, on_delete=models.CASCADE, related_name="bookings"
+    )
+    project = models.ForeignKey(
+        ProjectDetail, on_delete=models.CASCADE, related_name="bookings"
+    )
+
+    # Visitor Info
+    visitor_name = models.CharField(max_length=255)
+    visitor_mobile = models.CharField(max_length=15)
+    visitor_address = models.TextField(blank=True, null=True)
+
+    # Booking Info
+    plot_number = models.CharField(max_length=50, blank=True, null=True)
+    plot_area = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)  # in sqft/m²
+
+    booking_date = models.DateField(default=timezone.localdate)
+
+    total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    advance_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    remaining_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+
+    payment_status = models.CharField(
+        max_length=20, choices=PAYMENT_STATUS_CHOICES, default="pending"
+    )
+    booking_status = models.CharField(
+        max_length=20, choices=BOOKING_STATUS_CHOICES, default="pending"
+    )
+
+    remarks = models.TextField(blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Property Booking"
+        verbose_name_plural = "Property Bookings"
+        ordering = ["-booking_date", "-created_at"]
+
+    def __str__(self):
+        return f"{self.visitor_name} - {self.project.project_name} ({self.plot_number or 'N/A'})"
+
+    def save(self, *args, **kwargs):
+        # Auto-calculate remaining amount
+        self.remaining_amount = self.total_amount - self.advance_amount
+        super().save(*args, **kwargs)

@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, include
 from .views import (
     EmployeeLoginView,
     EmployeeProfileView,
@@ -6,7 +6,15 @@ from .views import (
     AttendanceCheckOutView,
     BiometricRegisterView,
     EmployeeFullDataAPIView,
+    SiteVisitViewSet,
+    PropertyBookingViewSet,
 )
+from rest_framework.routers import DefaultRouter
+
+# Router for ViewSets
+router = DefaultRouter()
+router.register(r'site-visits', SiteVisitViewSet, basename='site-visit')
+router.register(r'property-bookings', PropertyBookingViewSet, basename='property-booking')
 
 urlpatterns = [
     # Authentication
@@ -22,5 +30,9 @@ urlpatterns = [
     # Biometric
     path('biometric/register/', BiometricRegisterView.as_view(), name='biometric-register'),
 
+    # Employee full data
     path('employee/<str:employee_id>/full-data/', EmployeeFullDataAPIView.as_view(), name='employee-full-data'),
+
+    # Router URLs
+    path('', include(router.urls)),
 ]

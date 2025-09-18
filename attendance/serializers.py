@@ -140,3 +140,58 @@ class EmployeeFullDataSerializer(serializers.ModelSerializer):
             check_in_time__isnull=False
         ).count()
 
+
+
+from rest_framework import serializers
+from .models import SiteVisit
+
+
+class SiteVisitSerializer(serializers.ModelSerializer):
+    employee_name = serializers.CharField(
+        source="employee.user.get_full_name", read_only=True
+    )
+    project_name = serializers.CharField(
+        source="project.project_name", read_only=True
+    )
+
+    class Meta:
+        model = SiteVisit
+        fields = [
+            "id",
+            "employee",
+            "employee_name",
+            "project",
+            "project_name",
+            "visit_date",
+            "latitude",
+            "longitude",
+            "remarks",
+            "status",
+            "visitor_name",
+            "plot_number",
+            "visitor_mobile",
+            "visitor_address",
+            "visitor_status",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ("created_at", "updated_at")
+
+
+
+from rest_framework import serializers
+from .models import PropertyBooking
+
+
+class PropertyBookingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PropertyBooking
+        fields = "__all__"   # include all fields
+        read_only_fields = ("id", "created_at", "updated_at", "remaining_amount")
+
+    def validate(self, data):
+        total = data.get("total_amount", 0)
+        advance = data.get("advance_amount", 0)
+        if advance > total:
+            raise serializers.ValidationError("Advance amount cannot be greater than total amount.")
+        return data

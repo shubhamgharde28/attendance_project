@@ -162,3 +162,67 @@ class EmployeeFullDataAPIView(generics.RetrieveAPIView):
     def get_object(self):
         employee_id = self.kwargs.get('employee_id')
         return Employee.objects.get(employee_id=employee_id)
+
+
+
+
+from rest_framework import viewsets
+from .models import SiteVisit
+from .serializers import SiteVisitSerializer
+
+
+from rest_framework import viewsets, permissions
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from .models import SiteVisit
+from .serializers import SiteVisitSerializer
+
+
+class SiteVisitViewSet(viewsets.ModelViewSet):
+    queryset = SiteVisit.objects.all().order_by("-created_at")
+    serializer_class = SiteVisitSerializer
+    authentication_classes = [JWTAuthentication]   # 👈 Require JWT
+    permission_classes = [permissions.IsAuthenticated]  # 👈 Only logged in users
+
+    # Optional: filtering
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        employee_id = self.request.query_params.get("employee")
+        project_id = self.request.query_params.get("project")
+        visitor_status = self.request.query_params.get("visitor_status")
+
+        if employee_id:
+            queryset = queryset.filter(employee_id=employee_id)
+        if project_id:
+            queryset = queryset.filter(project_id=project_id)
+        if visitor_status:
+            queryset = queryset.filter(visitor_status=visitor_status)
+
+        return queryset
+
+
+
+from rest_framework import viewsets, permissions
+from .models import PropertyBooking
+from .serializers import PropertyBookingSerializer
+
+
+class PropertyBookingViewSet(viewsets.ModelViewSet):
+    queryset = PropertyBooking.objects.all().order_by("-booking_date")
+    serializer_class = PropertyBookingSerializer
+    permission_classes = [permissions.IsAuthenticated]  # ✅ JWT required
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        employee_id = self.request.query_params.get("employee")
+        project_id = self.request.query_params.get("project")
+        booking_status = self.request.query_params.get("booking_status")
+
+        if employee_id:
+            queryset = queryset.filter(employee_id=employee_id)
+        if project_id:
+            queryset = queryset.filter(project_id=project_id)
+        if booking_status:
+            queryset = queryset.filter(booking_status=booking_status)
+
+        return queryset
+

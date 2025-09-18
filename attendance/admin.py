@@ -60,3 +60,97 @@ class AttendanceAdmin(admin.ModelAdmin):
         'employee__user__first_name',
         'employee__user__last_name'
     )
+
+
+
+from django.contrib import admin
+from .models import ProjectDetail
+
+
+@admin.register(ProjectDetail)
+class ProjectDetailAdmin(admin.ModelAdmin):
+    list_display = (
+        "project_name",
+        "builder_name",
+        "project_type",
+        "city",
+        "state",
+        "zipcode",
+        "number_of_units",
+        "launch_date",
+        "possession_date",
+        "created_at",
+    )
+    list_filter = (
+        "project_type",
+        "city",
+        "state",
+        "launch_date",
+        "possession_date",
+    )
+    search_fields = (
+        "project_name",
+        "builder_name",
+        "city",
+        "state",
+        "zipcode",
+        "khasra_number",
+    )
+    ordering = ("-created_at",)
+    date_hierarchy = "launch_date"
+
+
+from django.contrib import admin
+from .models import SiteVisit
+
+
+@admin.register(SiteVisit)
+class SiteVisitAdmin(admin.ModelAdmin):
+    list_display = (
+        "visitor_name",
+        "visitor_mobile",
+        "employee",
+        "project",
+        "visit_date_display",
+        "visitor_status",
+        "status",
+        "created_at",
+    )
+    list_filter = ("status", "visitor_status", "project", "employee", "visit_date")
+    search_fields = (
+        "visitor_name",
+        "visitor_mobile",
+        "visitor_address",
+        "employee__user__first_name",
+        "employee__user__last_name",
+        "project__project_name",
+        "plot_number",
+    )
+    ordering = ("-created_at",)
+
+    def visit_date_display(self, obj):
+        return obj.visit_date if obj.visit_date else "Not Scheduled"
+    visit_date_display.short_description = "Visit Date"
+
+from django.contrib import admin
+from .models import PropertyBooking
+
+
+@admin.register(PropertyBooking)
+class PropertyBookingAdmin(admin.ModelAdmin):
+    list_display = (
+        "visitor_name",
+        "visitor_mobile",
+        "project",
+        "plot_number",
+        "plot_area",
+        "booking_date",
+        "total_amount",
+        "advance_amount",
+        "remaining_amount",
+        "payment_status",
+        "booking_status",
+    )
+    list_filter = ("project", "booking_status", "payment_status", "booking_date")
+    search_fields = ("visitor_name", "visitor_mobile", "plot_number")
+    ordering = ("-booking_date",)
