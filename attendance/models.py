@@ -229,6 +229,9 @@ class PropertyBooking(models.Model):
     visitor_mobile = models.CharField(max_length=15)
     visitor_address = models.TextField(blank=True, null=True)
 
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
+
     # Booking Info
     plot_number = models.CharField(max_length=50, blank=True, null=True)
     plot_area = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)  # in sqft/m²

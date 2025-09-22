@@ -144,6 +144,14 @@ class EmployeeFullDataSerializer(serializers.ModelSerializer):
 
 from rest_framework import serializers
 from .models import SiteVisit
+from rest_framework import serializers
+from .models import ProjectDetail
+
+
+class ProjectDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProjectDetail
+        fields = "__all__"
 
 
 class SiteVisitSerializer(serializers.ModelSerializer):

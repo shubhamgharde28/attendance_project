@@ -8,13 +8,16 @@ from .views import (
     EmployeeFullDataAPIView,
     SiteVisitViewSet,
     PropertyBookingViewSet,
+    ProjectDetailViewSet,
 )
 from rest_framework.routers import DefaultRouter
 
 # Router for ViewSets
 router = DefaultRouter()
 router.register(r'site-visits', SiteVisitViewSet, basename='site-visit')
-router.register(r'property-bookings', PropertyBookingViewSet, basename='property-booking')
+router.register(r'property-bookings', PropertyBookingViewSet, basename='property-booking'),
+router.register(r'projects', ProjectDetailViewSet, basename='project')
+
 
 urlpatterns = [
     # Authentication

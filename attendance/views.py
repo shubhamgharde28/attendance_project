@@ -175,6 +175,15 @@ from rest_framework import viewsets, permissions
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from .models import SiteVisit
 from .serializers import SiteVisitSerializer
+from rest_framework import viewsets, permissions
+from .models import ProjectDetail
+from .serializers import ProjectDetailSerializer
+
+
+class ProjectDetailViewSet(viewsets.ModelViewSet):
+    queryset = ProjectDetail.objects.all().order_by("-created_at")
+    serializer_class = ProjectDetailSerializer
+    permission_classes = [permissions.IsAuthenticated]  # ✅ JWT required
 
 
 class SiteVisitViewSet(viewsets.ModelViewSet):
