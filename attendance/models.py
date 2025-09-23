@@ -323,3 +323,4 @@ class EmployeeServiceStatus(models.Model):
         """Ensure reason is mandatory if not completed"""
         if self.status in ["pending", "delayed"] and not self.reason:
             raise ValidationError("Reason is required for pending or delayed services.")
+
