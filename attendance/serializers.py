@@ -203,3 +203,24 @@ class PropertyBookingSerializer(serializers.ModelSerializer):
         if advance > total:
             raise serializers.ValidationError("Advance amount cannot be greater than total amount.")
         return data
+
+
+from rest_framework import serializers
+from .models import Service, EmployeeServiceStatus
+
+
+# serializers.py
+from rest_framework import serializers
+from .models import EmployeeServiceStatus, Service
+
+class ServiceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Service
+        fields = "__all__"
+
+
+class EmployeeServiceStatusSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EmployeeServiceStatus
+        fields = "__all__"
+

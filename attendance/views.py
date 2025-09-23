@@ -235,3 +235,23 @@ class PropertyBookingViewSet(viewsets.ModelViewSet):
 
         return queryset
 
+
+
+from rest_framework import viewsets, permissions
+from .models import Service, EmployeeServiceStatus
+from .serializers import ServiceSerializer, EmployeeServiceStatusSerializer
+
+
+# views.py
+from rest_framework import viewsets
+from .models import EmployeeServiceStatus, Service
+from .serializers import EmployeeServiceStatusSerializer, ServiceSerializer
+
+class ServiceViewSet(viewsets.ModelViewSet):
+    queryset = Service.objects.all()
+    serializer_class = ServiceSerializer
+
+
+class EmployeeServiceStatusViewSet(viewsets.ModelViewSet):
+    queryset = EmployeeServiceStatus.objects.all()
+    serializer_class = EmployeeServiceStatusSerializer

@@ -2,7 +2,13 @@ from django.db import models
 from django.contrib.auth.models import User
 import random
 import string
-
+from django.db import models
+from django.db import models
+from django.db import models
+from django.utils import timezone
+from django.db import models
+from django.utils import timezone
+from django.core.exceptions import ValidationError
 # ----------------- UTILITY -----------------
 
 def generate_employee_id():
@@ -41,8 +47,6 @@ class Employee(models.Model):
 
 
 # ----------------- BIOMETRIC DATA -----------------
-
-from django.db import models
 
 class BiometricData(models.Model):
     employee = models.OneToOneField(
@@ -102,10 +106,6 @@ class Attendance(models.Model):
     class Meta:
         ordering = ['-date']
         unique_together = ('employee', 'date')
-
-
-
-from django.db import models
 
 
 class ProjectDetail(models.Model):
@@ -198,11 +198,6 @@ class SiteVisit(models.Model):
         return f"{self.visitor_name} - {self.project.project_name} ({self.visit_date})"
 
 
-from django.db import models
-from django.utils import timezone
-from .models import Employee, ProjectDetail
-
-
 class PropertyBooking(models.Model):
     BOOKING_STATUS_CHOICES = [
         ("pending", "Pending"),
@@ -266,3 +261,65 @@ class PropertyBooking(models.Model):
         # Auto-calculate remaining amount
         self.remaining_amount = self.total_amount - self.advance_amount
         super().save(*args, **kwargs)
+
+
+class Service(models.Model):
+    """Services defined by admin (like 7/12, Sale Deed, Registry, etc.)"""
+    name = models.CharField(max_length=255, unique=True)
+    description = models.TextField(blank=True, null=True)
+    is_active = models.BooleanField(default=True)  # admin can deactivate old services
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Service"
+        verbose_name_plural = "Services"
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
+class EmployeeServiceStatus(models.Model):
+    STATUS_CHOICES = [
+        ("pending", "Pending"),
+        ("delayed", "Delayed"),
+        ("completed", "Completed"),
+    ]
+
+    employee = models.ForeignKey(
+        Employee, on_delete=models.CASCADE, related_name="service_statuses"
+    )
+    project = models.ForeignKey(
+        ProjectDetail, on_delete=models.CASCADE, related_name="service_statuses"
+    )
+    service = models.ForeignKey(
+        Service, on_delete=models.CASCADE, related_name="statuses"
+    )
+
+    # 🔹 Property Details
+    property_name = models.CharField(max_length=255)  # e.g., "Flat A-101", "Shop No. 12"
+    property_area = models.FloatField(blank=True, null=True)  # sqft/m²
+    property_khasra_number = models.CharField(max_length=100, blank=True, null=True)
+
+    # 🔹 Service Status
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+    reason = models.TextField(blank=True, null=True)  # mandatory if pending/delayed
+    remarks = models.TextField(blank=True, null=True)  # optional
+
+    # 🔹 Meta Info
+    service_date = models.DateField(default=timezone.localdate)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Employee Service Status"
+        verbose_name_plural = "Employee Service Statuses"
+        unique_together = ("employee", "service", "project", "property_name")
+
+    def __str__(self):
+        return f"{self.employee.employee_id} - {self.service.name} ({self.project.project_name} - {self.property_name})"
+
+    def clean(self):
+        """Ensure reason is mandatory if not completed"""
+        if self.status in ["pending", "delayed"] and not self.reason:
+            raise ValidationError("Reason is required for pending or delayed services.")

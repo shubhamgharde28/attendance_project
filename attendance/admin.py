@@ -154,3 +154,42 @@ class PropertyBookingAdmin(admin.ModelAdmin):
     list_filter = ("project", "booking_status", "payment_status", "booking_date")
     search_fields = ("visitor_name", "visitor_mobile", "plot_number")
     ordering = ("-booking_date",)
+
+
+from django.contrib import admin
+from .models import Service, EmployeeServiceStatus
+
+
+@admin.register(Service)
+class ServiceAdmin(admin.ModelAdmin):
+    list_display = ("name", "is_active", "created_at")   # show these in list view
+    list_filter = ("is_active",)                         # filter by active/inactive
+    search_fields = ("name", "description")              # search by name/desc
+    ordering = ("name",)
+
+
+@admin.register(EmployeeServiceStatus)
+class EmployeeServiceStatusAdmin(admin.ModelAdmin):
+    list_display = (
+        "employee",
+        "service",
+        "project",
+        "property_name",
+        "property_area",
+        "property_khasra_number",
+        "status",
+        "service_date",
+        "updated_at",
+    )
+    list_filter = ("status", "service_date", "updated_at", "project")  # filter sidebar
+    search_fields = (
+        "employee__user__first_name",
+        "employee__user__last_name",
+        "employee__employee_id",
+        "service__name",
+        "project__project_name",
+        "property_name",
+        "property_khasra_number",
+    )
+    ordering = ("-updated_at",)
+    autocomplete_fields = ("employee", "project", "service")  # dropdown with search

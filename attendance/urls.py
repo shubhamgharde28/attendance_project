@@ -9,6 +9,8 @@ from .views import (
     SiteVisitViewSet,
     PropertyBookingViewSet,
     ProjectDetailViewSet,
+    ServiceViewSet,
+    EmployeeServiceStatusViewSet,
 )
 from rest_framework.routers import DefaultRouter
 
@@ -17,7 +19,8 @@ router = DefaultRouter()
 router.register(r'site-visits', SiteVisitViewSet, basename='site-visit')
 router.register(r'property-bookings', PropertyBookingViewSet, basename='property-booking'),
 router.register(r'projects', ProjectDetailViewSet, basename='project')
-
+router.register(r'services', ServiceViewSet)
+router.register(r'employee-service-status', EmployeeServiceStatusViewSet)
 
 urlpatterns = [
     # Authentication
