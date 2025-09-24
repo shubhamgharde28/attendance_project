@@ -160,6 +160,10 @@ from django.contrib import admin
 from .models import Service, EmployeeServiceStatus
 
 
+from django.contrib import admin
+from .models import Service, EmployeeServiceStatus, EmployeeReport
+
+# ----------------- SERVICE -----------------
 @admin.register(Service)
 class ServiceAdmin(admin.ModelAdmin):
     list_display = ("name", "is_active", "created_at")   # show these in list view
@@ -167,7 +171,7 @@ class ServiceAdmin(admin.ModelAdmin):
     search_fields = ("name", "description")              # search by name/desc
     ordering = ("name",)
 
-
+# ----------------- EMPLOYEE SERVICE STATUS -----------------
 @admin.register(EmployeeServiceStatus)
 class EmployeeServiceStatusAdmin(admin.ModelAdmin):
     list_display = (
@@ -193,3 +197,25 @@ class EmployeeServiceStatusAdmin(admin.ModelAdmin):
     )
     ordering = ("-updated_at",)
     autocomplete_fields = ("employee", "project", "service")  # dropdown with search
+
+# ----------------- EMPLOYEE REPORT -----------------
+@admin.register(EmployeeReport)
+class EmployeeReportAdmin(admin.ModelAdmin):
+    list_display = (
+        "employee",
+        "attendance",
+        "report_text",
+        "latitude",
+        "longitude",
+        "created_at",
+    )
+    list_filter = ("created_at", "employee")  # filter sidebar
+    search_fields = (
+        "employee__user__first_name",
+        "employee__user__last_name",
+        "employee__employee_id",
+        "attendance__id",
+        "report_text",
+    )
+    ordering = ("-created_at",)
+    autocomplete_fields = ("employee", "attendance")  # dropdown with search
