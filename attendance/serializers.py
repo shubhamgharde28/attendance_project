@@ -206,7 +206,7 @@ class PropertyBookingSerializer(serializers.ModelSerializer):
 
 
 from rest_framework import serializers
-from .models import Service, EmployeeServiceStatus
+from .models import Service, EmployeeServiceStatus, EmployeeReport
 
 
 # serializers.py
@@ -224,3 +224,11 @@ class EmployeeServiceStatusSerializer(serializers.ModelSerializer):
         model = EmployeeServiceStatus
         fields = "__all__"
 
+class EmployeeReportSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EmployeeReport
+        fields = [
+            "id", "employee", "attendance", "report_text",
+            "latitude", "longitude", "created_at"
+        ]
+        read_only_fields = ["id", "created_at"]

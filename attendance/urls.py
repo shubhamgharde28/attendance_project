@@ -11,6 +11,8 @@ from .views import (
     ProjectDetailViewSet,
     ServiceViewSet,
     EmployeeServiceStatusViewSet,
+    EmployeeReportViewSet,
+    MissedReportViewSet,
 )
 from rest_framework.routers import DefaultRouter
 
@@ -21,6 +23,8 @@ router.register(r'property-bookings', PropertyBookingViewSet, basename='property
 router.register(r'projects', ProjectDetailViewSet, basename='project')
 router.register(r'services', ServiceViewSet)
 router.register(r'employee-service-status', EmployeeServiceStatusViewSet)
+router.register(r'reports', EmployeeReportViewSet, basename='employee-report')
+router.register(r'missed_reports', MissedReportViewSet, basename='missed-reports')
 
 urlpatterns = [
     # Authentication

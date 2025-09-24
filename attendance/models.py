@@ -2,13 +2,10 @@ from django.db import models
 from django.contrib.auth.models import User
 import random
 import string
-from django.db import models
-from django.db import models
-from django.db import models
 from django.utils import timezone
 from django.db import models
-from django.utils import timezone
 from django.core.exceptions import ValidationError
+
 # ----------------- UTILITY -----------------
 
 def generate_employee_id():
@@ -296,17 +293,15 @@ class EmployeeServiceStatus(models.Model):
         Service, on_delete=models.CASCADE, related_name="statuses"
     )
 
-    # 🔹 Property Details
-    property_name = models.CharField(max_length=255)  # e.g., "Flat A-101", "Shop No. 12"
-    property_area = models.FloatField(blank=True, null=True)  # sqft/m²
+    property_name = models.CharField(max_length=255)
+    property_area = models.FloatField(blank=True, null=True)
     property_khasra_number = models.CharField(max_length=100, blank=True, null=True)
 
-    # 🔹 Service Status
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
-    reason = models.TextField(blank=True, null=True)  # mandatory if pending/delayed
-    remarks = models.TextField(blank=True, null=True)  # optional
+    reason = models.TextField(blank=True, null=True)
+    expected_completion_date = models.DateField(blank=True, null=True)
+    remarks = models.TextField(blank=True, null=True)
 
-    # 🔹 Meta Info
     service_date = models.DateField(default=timezone.localdate)
     updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -314,13 +309,36 @@ class EmployeeServiceStatus(models.Model):
     class Meta:
         verbose_name = "Employee Service Status"
         verbose_name_plural = "Employee Service Statuses"
-        unique_together = ("employee", "service", "project", "property_name")
-
-    def __str__(self):
-        return f"{self.employee.employee_id} - {self.service.name} ({self.project.project_name} - {self.property_name})"
+        indexes = [
+            models.Index(fields=["employee", "service", "project", "property_name"]),
+        ]  # ✅ for faster lookups (no uniqueness restriction)
 
     def clean(self):
-        """Ensure reason is mandatory if not completed"""
-        if self.status in ["pending", "delayed"] and not self.reason:
-            raise ValidationError("Reason is required for pending or delayed services.")
+        if self.status in ["pending", "delayed"]:
+            if not self.reason:
+                raise ValidationError("Reason is required for pending or delayed services.")
+            if not self.expected_completion_date:
+                raise ValidationError("Expected completion date is required for pending or delayed services.")
+
+
+
+class EmployeeReport(models.Model):
+    employee = models.ForeignKey(
+        Employee, on_delete=models.CASCADE, related_name="reports"
+    )
+    attendance = models.ForeignKey(
+        Attendance, on_delete=models.CASCADE, related_name="reports"
+    )
+    report_text = models.TextField()
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Employee Report"
+        verbose_name_plural = "Employee Reports"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.employee.employee_id} - {self.created_at.strftime('%Y-%m-%d %H:%M')}"
 

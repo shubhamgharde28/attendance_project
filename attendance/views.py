@@ -4,13 +4,14 @@ from rest_framework import status, permissions, generics
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.utils import timezone
 from django.contrib.auth import authenticate
-from .models import Employee, Attendance, BiometricData
+from .models import Employee, Attendance, BiometricData, EmployeeReport
 from .serializers import (
     LoginSerializer,
     EmployeeProfileSerializer,
     AttendanceCheckInSerializer,
     AttendanceCheckOutSerializer,
     BiometricRegisterSerializer,
+    EmployeeReportSerializer
 )
 from drf_yasg.utils import swagger_auto_schema
 
@@ -255,3 +256,78 @@ class ServiceViewSet(viewsets.ModelViewSet):
 class EmployeeServiceStatusViewSet(viewsets.ModelViewSet):
     queryset = EmployeeServiceStatus.objects.all()
     serializer_class = EmployeeServiceStatusSerializer
+
+
+
+from rest_framework import viewsets, permissions
+from rest_framework.response import Response
+from rest_framework import status
+from django.utils import timezone
+from datetime import timedelta
+
+class EmployeeReportViewSet(viewsets.ModelViewSet):
+    queryset = EmployeeReport.objects.all().select_related("employee", "attendance")
+    serializer_class = EmployeeReportSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def create(self, request, *args, **kwargs):
+        employee = request.user.employee
+        try:
+            attendance = Attendance.objects.get(
+                employee=employee,
+                date=timezone.localdate(),
+                check_in_time__isnull=False,
+                check_out_time__isnull=True,
+            )
+        except Attendance.DoesNotExist:
+            return Response(
+                {"error": "No active attendance found. Please check in first."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        data = request.data.copy()
+        data["employee"] = employee.id
+        data["attendance"] = attendance.id
+
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def get_queryset(self):
+        """Employee sees only their own reports"""
+        return EmployeeReport.objects.filter(employee=self.request.user.employee)
+
+from rest_framework import viewsets, permissions
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from django.utils import timezone
+from datetime import timedelta
+from .models import Attendance, EmployeeReport
+
+class MissedReportViewSet(viewsets.ViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+
+    @action(detail=False, methods=["get"])
+    def missed_reports(self, request):
+        employee = request.user.employee
+        now = timezone.now()
+        # active attendance for today
+        try:
+            attendance = Attendance.objects.get(
+                employee=employee,
+                date=timezone.localdate(),
+                check_in_time__isnull=False,
+                check_out_time__isnull=True
+            )
+        except Attendance.DoesNotExist:
+            return Response({"missed": False, "message": "No active attendance"})
+
+        last_report = EmployeeReport.objects.filter(attendance=attendance).order_by("-created_at").first()
+        last_time = last_report.created_at if last_report else attendance.check_in_time
+
+        # 30 minutes threshold
+        if now - last_time > timedelta(minutes=30):
+            return Response({"missed": True, "message": "You missed a half-hourly report."})
+        else:
+            return Response({"missed": False, "message": "All reports submitted on time."})
