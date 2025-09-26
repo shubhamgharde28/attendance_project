@@ -13,6 +13,8 @@ from .views import (
     EmployeeServiceStatusViewSet,
     EmployeeReportViewSet,
     MissedReportViewSet,
+    WorkPlanViewSet,
+    WorkDetailViewSet,
 )
 from rest_framework.routers import DefaultRouter
 
@@ -25,6 +27,8 @@ router.register(r'services', ServiceViewSet)
 router.register(r'employee-service-status', EmployeeServiceStatusViewSet)
 router.register(r'reports', EmployeeReportViewSet, basename='employee-report')
 router.register(r'missed_reports', MissedReportViewSet, basename='missed-reports')
+router.register(r'work-plans', WorkPlanViewSet, basename='work-plan')
+router.register(r'work-details', WorkDetailViewSet, basename='work-detail')
 
 urlpatterns = [
     # Authentication

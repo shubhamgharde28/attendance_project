@@ -232,3 +232,57 @@ class EmployeeReportSerializer(serializers.ModelSerializer):
             "latitude", "longitude", "created_at"
         ]
         read_only_fields = ["id", "created_at"]
+
+
+
+from rest_framework import serializers
+from .models import WorkPlan, WorkDetail
+
+class WorkDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WorkDetail
+        fields = [
+            "id", "work_plan", "title", "target_quantity",
+            "achieved_quantity", "status", "created_at", "updated_at"
+        ]
+        read_only_fields = ["id", "created_at", "updated_at", "target_quantity"]
+
+class WorkDetailUpdateSerializer(serializers.ModelSerializer):
+    """For employee to submit achieved quantity and update status"""
+
+    class Meta:
+        model = WorkDetail
+        fields = ["achieved_quantity", "status"]
+
+    def update(self, instance, validated_data):
+        quantity = validated_data.get("achieved_quantity", 0)
+        status = validated_data.get("status", None)
+        instance.add_achieved(quantity=quantity, status=status)
+        return instance
+
+
+from rest_framework import serializers
+from .models import WorkPlan, WorkDetail
+
+class WorkPlanSerializer(serializers.ModelSerializer):
+    overall_progress = serializers.ReadOnlyField()
+
+    class Meta:
+        model = WorkPlan
+        fields = "__all__"
+
+from rest_framework import serializers, viewsets, permissions
+from .models import WorkDetail
+
+from rest_framework import serializers
+from .models import WorkDetail
+
+class WorkDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WorkDetail
+        fields = ["id", "work_plan", "title", "target_quantity", "achieved_quantity", "status"]
+        read_only_fields = ["achieved_quantity"]  # Prevent direct update, cumulative add only
+
+
+
+

@@ -219,3 +219,48 @@ class EmployeeReportAdmin(admin.ModelAdmin):
     )
     ordering = ("-created_at",)
     autocomplete_fields = ("employee", "attendance")  # dropdown with search
+
+
+
+from django.contrib import admin
+from .models import WorkPlan, WorkDetail
+
+
+class WorkDetailInline(admin.TabularInline):
+    model = WorkDetail
+    extra = 1
+    fields = ("title", "target_quantity", "achieved_quantity", "status")
+    readonly_fields = ("achieved_quantity", "status")  
+    # ✅ employee update करेगा ये fields via API, admin सिर्फ देख सके
+
+
+from django.contrib import admin
+from .models import WorkPlan, WorkDetail
+
+
+# ----------------- Inline for WorkDetail -----------------
+class WorkDetailInline(admin.TabularInline):
+    model = WorkDetail
+    extra = 0
+    show_change_link = True
+    readonly_fields = ("achieved_quantity", "status")  # optional
+
+
+# ----------------- WorkPlan Admin -----------------
+@admin.register(WorkPlan)
+class WorkPlanAdmin(admin.ModelAdmin):
+    list_display = ("employee", "plan_type", "start_date", "end_date", "overall_progress", "created_at")
+    list_filter = ("plan_type", "start_date", "end_date", "employee")
+    search_fields = ("employee__employee_id", "employee__user__first_name", "employee__user__last_name")
+    ordering = ("-created_at",)
+    inlines = [WorkDetailInline]
+
+# ----------------- WorkDetail Admin -----------------
+@admin.register(WorkDetail)
+class WorkDetailAdmin(admin.ModelAdmin):
+    list_display = ("work_plan", "title", "target_quantity", "achieved_quantity", "status", "updated_at")
+    list_filter = ("status", "work_plan__plan_type")
+    search_fields = ("title", "work_plan__employee__employee_id", "work_plan__employee__user__first_name")
+    ordering = ("-updated_at",)
+
+

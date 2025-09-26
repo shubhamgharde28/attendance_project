@@ -342,3 +342,74 @@ class EmployeeReport(models.Model):
     def __str__(self):
         return f"{self.employee.employee_id} - {self.created_at.strftime('%Y-%m-%d %H:%M')}"
 
+
+from django.db import models
+from datetime import date
+
+from django.db import models
+from datetime import date
+
+# ----------------- WORK PLAN MODELS -----------------
+class WorkPlan(models.Model):
+    PLAN_TYPE_CHOICES = [
+        ("daily", "Daily"),
+        ("weekly", "Weekly"),
+        ("monthly", "Monthly"),
+    ]
+
+    employee = models.ForeignKey("Employee", on_delete=models.CASCADE, related_name="work_plans")
+    plan_type = models.CharField(max_length=10, choices=PLAN_TYPE_CHOICES, default="daily")
+    start_date = models.DateField(default=date.today)
+    end_date = models.DateField(blank=True, null=True)
+    remarks = models.TextField(blank=True, help_text="Manager or employee remarks")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Work Plan"
+        verbose_name_plural = "Work Plans"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.employee} - {self.plan_type} ({self.start_date})"
+
+    @property
+    def overall_progress(self):
+        details = self.details.all()
+        total_target = sum(d.target_quantity for d in details)
+        total_achieved = sum(d.achieved_quantity for d in details)
+        return round((total_achieved / total_target) * 100, 2) if total_target else 0
+
+
+class WorkDetail(models.Model):
+    STATUS_CHOICES = [
+        ("pending", "Pending"),
+        ("in_progress", "In Progress"),
+        ("completed", "Completed"),
+        ("not_achieved", "Not Achieved"),
+    ]
+
+    work_plan = models.ForeignKey(
+        "WorkPlan", on_delete=models.CASCADE, related_name="details"
+    )
+    title = models.CharField(max_length=255, help_text="Work title / description")
+    target_quantity = models.PositiveIntegerField(default=0, help_text="Expected target")
+    achieved_quantity = models.PositiveIntegerField(default=0, help_text="Achieved count")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Work Detail"
+        verbose_name_plural = "Work Details"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.work_plan} - {self.title} ({self.status})"
+
+    def add_achieved(self, quantity):
+        """Cumulatively add achieved quantity"""
+        self.achieved_quantity += quantity
+        self.save()
+

@@ -331,3 +331,60 @@ class MissedReportViewSet(viewsets.ViewSet):
             return Response({"missed": True, "message": "You missed a half-hourly report."})
         else:
             return Response({"missed": False, "message": "All reports submitted on time."})
+
+
+
+from rest_framework import viewsets, permissions, status
+from rest_framework.response import Response
+from .models import WorkPlan, WorkDetail
+from .serializers import WorkPlanSerializer, WorkDetailSerializer
+
+class WorkPlanViewSet(viewsets.ModelViewSet):
+    queryset = WorkPlan.objects.all()
+    serializer_class = WorkPlanSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+from rest_framework import viewsets, status, permissions
+from rest_framework.response import Response
+from .models import WorkDetail
+from .serializers import WorkDetailSerializer
+
+class WorkDetailViewSet(viewsets.ModelViewSet):
+    queryset = WorkDetail.objects.all()
+    serializer_class = WorkDetailSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def create(self, request, *args, **kwargs):
+        """
+        POST will add achieved_quantity cumulatively and update status.
+        """
+        work_id = request.data.get("id")  # WorkDetail ID
+        achieved_qty = request.data.get("achieved_quantity", 0)
+        status_value = request.data.get("status")
+
+        if not work_id:
+            return Response({"error": "WorkDetail ID is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            work = WorkDetail.objects.get(id=work_id)
+        except WorkDetail.DoesNotExist:
+            return Response({"error": "WorkDetail not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Add achieved quantity cumulatively
+        if int(achieved_qty) > 0:
+            work.add_achieved(int(achieved_qty))
+
+        # Update status
+        if status_value:
+            work.status = status_value
+            work.save()
+
+        serializer = self.get_serializer(work)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def get_queryset(self):
+        """
+        Optional: filter by employee if needed
+        """
+        return WorkDetail.objects.all().select_related("work_plan", "work_plan__employee")
+
