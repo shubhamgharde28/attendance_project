@@ -261,27 +261,34 @@ class WorkDetailUpdateSerializer(serializers.ModelSerializer):
         return instance
 
 
+# serializers.py
 from rest_framework import serializers
-from .models import WorkPlan, WorkDetail
+from .models import WorkPlan, WorkDetail, Employee
+
 
 class WorkPlanSerializer(serializers.ModelSerializer):
-    overall_progress = serializers.ReadOnlyField()
+    employee_id = serializers.CharField(source='employee.employee_id', read_only=True)
 
     class Meta:
         model = WorkPlan
-        fields = "__all__"
+        fields = [
+            'id', 'employee', 'employee_id', 'plan_type', 'start_date', 'end_date',
+            'remarks', 'created_at', 'updated_at', 'overall_progress'
+        ]
 
-from rest_framework import serializers, viewsets, permissions
-from .models import WorkDetail
-
-from rest_framework import serializers
-from .models import WorkDetail
 
 class WorkDetailSerializer(serializers.ModelSerializer):
+    employee_id = serializers.CharField(source='work_plan.employee.employee_id', read_only=True)
+    plan_type = serializers.CharField(source='work_plan.plan_type', read_only=True)
+
     class Meta:
         model = WorkDetail
-        fields = ["id", "work_plan", "title", "target_quantity", "achieved_quantity", "status"]
-        read_only_fields = ["achieved_quantity"]  # Prevent direct update, cumulative add only
+        fields = [
+            'id', 'work_plan', 'employee_id', 'plan_type',
+            'title', 'target_quantity', 'achieved_quantity',
+            'status', 'created_at', 'updated_at'
+        ]
+
 
 
 
